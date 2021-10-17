@@ -1,0 +1,46 @@
+{
+  "name": "notion-page-search",
+  "title": "Notion Page Search",
+  "description": "",
+  "icon": "command-icon.png",
+  "author": "thomas",
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "index",
+      "title": "Seach Pages",
+      "subtitle": "Notion",
+      "description": "Search Notion pages",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "token",
+      "type": "password",
+      "required": true,
+      "title": "API Token",
+      "description": "You must have Admin access level to your workspae."
+    }
+  ],
+  "dependencies": {
+    "@notionhq/client": "^0.4.4",
+    "@raycast/api": "^1.25.0",
+    "node-fetch": "^3.0.0",
+    "swr": "^1.0.1"
+  },
+  "devDependencies": {
+    "@types/node": "~16.10.0",
+    "@types/react": "^17.0.28",
+    "@typescript-eslint/eslint-plugin": "^5.0.0",
+    "@typescript-eslint/parser": "^5.0.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "react-devtools": "^4.19.2",
+    "typescript": "^4.4.3"
+  },
+  "scripts": {
+    "build": "ray build -e dist",
+    "dev": "ray develop"
+  }
+}
