@@ -1,56 +1,86 @@
 import { LocalStorage } from "@raycast/api";
-import { SonosDevice } from "@svrooij/sonos/lib";
 import { SonosState } from "@svrooij/sonos/lib/models/sonos-state";
 
-const GROUP_KEY = "active-group";
-const STATE_KEY = "state";
-const STATE_TTL = 3000;
+export const coordinatorStorage = createStorage<string>({
+  key: "coordinator",
+  ttl: 20,
+});
 
-export async function getActiveGroup(): Promise<string | undefined> {
-  try {
-    const group = await LocalStorage.getItem<string>(GROUP_KEY);
-    return group;
-  } catch (error) {
-    return undefined;
-  }
-}
+export const groupStorage = createStorage<string>({
+  key: "active-group",
+});
 
-export async function setActiveGroup(group: string | undefined) {
-  try {
-    await LocalStorage.setItem(GROUP_KEY, group || "");
-  } catch (error) {
-    return undefined;
-  }
-}
+export const stateStorage = createStorage<SonosState>({
+  key: "state",
+  ttl: 5,
+});
 
-type StorageStatePayload = {
-  timestamp: number;
-  sonosState: SonosState;
+export const devicesStorage = createStorage<string[]>({
+  key: "available-devices",
+  ttl: 10,
+});
+
+type StorageConfig = {
+  key: string;
+  ttl?: number;
+  serialize?: boolean;
+  debug?: boolean;
 };
 
-export async function getState(): Promise<StorageStatePayload | null> {
-  try {
-    const raw = await LocalStorage.getItem<string>(STATE_KEY);
-    const state = JSON.parse(raw || "");
+type StorageInstance<Shape> = {
+  get: () => Promise<Shape | undefined>;
+  set: (value: Shape) => Promise<void>;
+  clear: () => Promise<void>;
+};
 
-    if (state.timestamp + STATE_TTL < Date.now()) {
-      return null;
+type StoredWrapper = {
+  timestamp: number;
+  data: string;
+};
+
+/**
+ * Create a new slice of stored data. Supports TTL and serialization.
+ */
+function createStorage<Shape extends string | boolean | object>(config: StorageConfig): StorageInstance<Shape> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const log = (...message: any[]) => {
+    if (config.debug) {
+      console.log("[StorageInstance]", config.key, ...message);
     }
-
-    return state;
-  } catch (error) {
-    return null;
-  }
-}
-
-export async function setState(coordinator: SonosDevice): Promise<StorageStatePayload> {
-  const sonosState = await coordinator.GetState();
-  const payload = {
-    timestamp: Date.now(),
-    sonosState,
   };
 
-  await LocalStorage.setItem(STATE_KEY, JSON.stringify(payload));
+  return {
+    async get() {
+      try {
+        const raw = await LocalStorage.getItem(config.key);
+        const row = JSON.parse(raw?.toString() ?? "");
 
-  return payload;
+        if (config.ttl && row.timestamp + config.ttl * 1000 < Date.now()) {
+          log(`expired`);
+          return undefined;
+        }
+
+        return config.serialize ? JSON.parse(row.data) : row.data;
+      } catch (error) {
+        log(`return undefined`, error);
+        return undefined;
+      }
+    },
+
+    async set(value: Shape) {
+      log(`set`, JSON.stringify(value));
+
+      const data = config.serialize ? JSON.stringify(value) : value;
+      const row: StoredWrapper = {
+        timestamp: Date.now(),
+        data: data as string,
+      };
+
+      await LocalStorage.setItem(config.key, JSON.stringify(row));
+    },
+
+    async clear() {
+      await LocalStorage.removeItem(config.key);
+    },
+  };
 }

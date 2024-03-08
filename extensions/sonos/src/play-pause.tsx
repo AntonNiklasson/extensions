@@ -1,16 +1,13 @@
-import { LaunchProps, LaunchType, updateCommandMetadata } from "@raycast/api";
+import { LaunchProps, LaunchType, Toast, showToast, updateCommandMetadata } from "@raycast/api";
 import { SonosDevice } from "@svrooij/sonos/lib";
-import { SonosState } from "@svrooij/sonos/lib/models/sonos-state";
 import { formatPlayingState, getActiveCoordinator, getLatestState } from "./core/sonos";
 import { handleCommandError, tryLaunchCommand } from "./core/utils";
 
 export default async function Command({ launchType }: LaunchProps) {
   const userInitiated = launchType === LaunchType.UserInitiated;
-  let state: SonosState | null;
   let coordinator: SonosDevice | undefined;
 
   try {
-    state = await getLatestState();
     coordinator = await getActiveCoordinator();
   } catch (error) {
     await handleCommandError(error);
@@ -25,20 +22,27 @@ export default async function Command({ launchType }: LaunchProps) {
     });
   } else {
     if (coordinator && userInitiated) {
-      await coordinator.TogglePlayback();
+      try {
+        await coordinator.TogglePlayback();
+      } catch (error) {
+        await showToast({
+          title: "Can't toggle playback in the current state",
+          style: Toast.Style.Failure,
+        });
+      }
     }
 
+    const state = await getLatestState({
+      ignoreCache: userInitiated,
+    });
     const title = await formatPlayingState(state);
 
-    if (title !== null) {
-      updateCommandMetadata({
-        subtitle: title,
-      });
-
-      await tryLaunchCommand({
-        name: "now-playing",
-        type: LaunchType.Background,
-      });
-    }
+    updateCommandMetadata({
+      subtitle: title ?? "",
+    });
+    await tryLaunchCommand({
+      name: "now-playing",
+      type: LaunchType.Background,
+    });
   }
 }

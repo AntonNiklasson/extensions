@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { formatPlayingState, getAvailableGroups, getLatestState } from "./sonos";
-import * as storage from "./storage";
+import { groupStorage } from "./storage";
 
 export function useCurrentState() {
   const [title, setTitle] = useState<string | null>(null);
@@ -38,7 +38,7 @@ export function useSonos() {
     async function run() {
       try {
         const groups = await getAvailableGroups();
-        const activeGroup = await storage.getActiveGroup();
+        const activeGroup = await groupStorage.get();
 
         setAvailableGroups(groups);
         setActiveGroup(activeGroup);
@@ -51,7 +51,7 @@ export function useSonos() {
   }, []);
 
   return {
-    availableGroups: availableGroups,
+    availableGroups,
     activeGroup,
     systemDetected,
   };

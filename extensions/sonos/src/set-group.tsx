@@ -1,6 +1,6 @@
 import { Action, ActionPanel, Detail, Icon, List, popToRoot, showToast } from "@raycast/api";
 import { useSonos } from "./core/hooks";
-import { setActiveGroup } from "./core/storage";
+import { groupStorage } from "./core/storage";
 import { NoSystemContent } from "./core/utils";
 
 export default function SetActiveGroupCommand() {
@@ -34,7 +34,7 @@ export default function SetActiveGroupCommand() {
                   <Action
                     title="Select"
                     onAction={async () => {
-                      await setActiveGroup(group);
+                      await groupStorage.set(group);
 
                       await showToast({
                         title: `Now controlling "${group}"`,
